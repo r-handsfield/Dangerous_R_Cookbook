@@ -4,7 +4,9 @@
 # R files
 *.Rproj
 *.Rproj
+*.Rproj.user
 *.RData
 *.Rdata
 *.RHistory
 *.Rhistory
+

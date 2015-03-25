@@ -1,0 +1,13 @@
+Dangerous R Cookbook
+
+The DRC is not for absolute R beginners. It assumes some familiarity with the language. It is intended for people who want to do things with R packages. 
+
+The DRC philosophy is to use 1 set of methods to accomplish 90% of what you need. Each example shows 1 specific applicationof those methods. 
+
+Packages are not explained, except to reveal underlying structures that make you more dangerous!  
+
+There are quicker, simpler, and more elegant ways to accomplish specific R tasks; the DRC approach will quickly have you USING your R packages versatilely effectively. 
+
+Topics
+-----------------------------------
+ggplot2
