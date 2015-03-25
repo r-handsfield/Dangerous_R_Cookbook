@@ -1,0 +1,996 @@
+---
+title: 'Dangerous R Cookbook: ggplot2'
+author: "Robert Handsfield"
+date: "02/25/2015"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+---
+```{r echo=FALSE, results='hide', message=FALSE}
+
+require("ggplot2");
+```
+
+```{r LoadProject, echo=FALSE, message=FALSE, warning=FALSE}
+ProjectTemplate::load.project();
+```
+
+```{r multiplotFunction, echo=FALSE}
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+
+  numPlots = length(plots)
+
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                    ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+
+ if (numPlots==1) {
+    print(plots[[1]])
+
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
+}
+
+```
+
+# Introduction - Just Enough to be Dangerous
+Dangerous R Cookbook: *ggplot2* is not for absolute R beginners. It assumes some familiarity with the language. It is intended for people who need to graph things with the ggplot2 R package, and want to learn just enough to be dangerous.
+
+This cookbook shows you how to use 1 set of methods to accomplish 90% of your graphing needs. For example, `qplot()` is ignored because it replicates `ggplot()` functionality.
+
+Each example applies the same ggplot2 approach to 1 kind of graph.
+
+The ggplot2 package is not explained, except to reveal underlying structure that make you more dangerous!  
+
+There are quicker, simpler, and more elegant ways to make specific graphs; this cookbook ignores all of those, and takes you from ggplot2 novice to competency by teaching 1 set of methods that work 90% of the time.
+
+Note: *Semicolons ';' are not required in R, unless you're putting multiple statements on one line. They are included in the DRC because the author is too solipsistic to change his habits.*
+
+## Links
+Official ggplot2 documentation, and other worthwhile guides. Many examples throughout *DRC:ggplot2* link back to the official documentation.
+
+* [Source Code]("http://cran.r-project.org/src/contrib/ggplot2_1.0.0.tar.gz") on CRAN (tar.gz)
+* Official Github [Repository]("https://github.com/hadley/ggplot2")
+* Official [Manual]("http://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf") on CRAN (.pdf)
+* Official [Documentation]("http://docs.ggplot2.org/current/")
+* [Examples]("http://www.cookbook-r.com/Graphs/") from cookbook-r.com
+* [Quick Reference]("http://sape.inf.usi.ch/quick-reference/ggplot2") from SAPE
+
+## Architecture
+**ggplot2** is an R package for making graphs.  It works pretty well.  
+
+Basic graph syntax always looks like this:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_point()
+```
+
+**A ggplot graph always requires these 3 things**
+
+1. A basic ggplot object
+	+ `ggplot()`
+2. A set of aesthetics: determines x, y, & how they're plotted
+	+ `aes(x = , y = )`
+3. A geometry layer: controls basic plot type 
+	+ `geom_line()`, `geom_point()`, [etc.]("#Geometry Layers")
+
+
+A ggplot graph may have many additional layers to add labels, annotations, etc.  The official ggplot2 definition of a 'layer', includes things that don't intuitively seem like layers, like statistical transformations.  This cookbook ignores the official definition, and refers to a 'layer' as something you would reasonably add to a graph drawn on paper.
+Any ggplot graph may have multiple layers of most kinds, as long as the logic and syntax are correct.
+
+**Sample Optional Layers**
+
+1. A title
+	+ `ggtitle()`
+2. Labels: add labels to axes
+	+ `xlab()`, `labs()`, etc.
+3. Annotations: add labels to the plotting area
+	+ `annotate()`, `geom_text()`, etc.
+
+
+
+### The ggplot object - `ggplot()`
+Initializes a ggplot graph object. 
+
+When plotting columns of a data frame, passing the frame to `ggplot()` lets us refer to the column names directly, without needing `my_data_frame$my_column`.
+
+<br />
+
+Compare plotting columns of a data frame by passing the frame to `ggplot()`, and referencing the columns directly:
+```{r }
+# build a data frame of height and weight measurements
+df <- data.frame( height=c(5.4, 5.6, 5.6, 5.7), weight=c(120, 122, 125, 131) );
+```
+
+```{r fig.show='hide'}
+# without passing the data frame "df" -- reference columns directly
+ggplot() + aes(x = df$weight , y = df$height ) + geom_point();
+
+# passing the data frame "df"
+ggplot( data = df ) + aes(x = weight , y = height ) + geom_point();
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3}
+
+# without passing the data frame "df"
+nodf <- ggplot() + aes(x = df$weight , y = df$height ) + geom_point() + ggtitle("Not Passing the Data Frame");
+
+# passing the data frame "df"
+yesdf <- ggplot( data = df ) + aes(x = weight , y = height ) + geom_point() + ggtitle("Passing the Data Frame");
+
+multiplot(nodf, yesdf, cols = 2);
+```
+
+### The Aesthetics Layer - `aes()`
+The aesthetics layer is initialized with the `aes(x = , y = )` method. The data you're plotting, as well as any parameters for how to map and display the data, go inside `aes( )`.
+
+The `aes()` method can be inside the geometry object method, in a term by itself, or, inside `ggplot()` with a data frame.
+```{r}
+h <- 1:6;
+v <- 1:6;
+```
+
+```{r fig.show='hide'}
+# aesthetics layer inside the geometry method
+ggplot() + geom_point( aes(x = h, y = v) );
+
+# the aesthetics layer in its own term
+ggplot() + aes(x = h, y = v) + geom_point();
+
+# with a data frame, aesthetics layer inside ggplot()
+df <- data.frame(h,v);
+ggplot(df, aes(h, v) ) + geom_point();
+
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=9}
+# print figures without showing ANY generating code or messages
+aes_alone <- ggplot() + aes(x=h, y=v) + geom_point();
+inside_geom <- ggplot() + geom_point( aes(x=h, y=v) );
+inside_ggplot <- ggplot(df, aes(h, v) ) + geom_point();
+
+aes_alone <- aes_alone + ggtitle("... + aes(x=h,y=v) + ...") + 
+				theme( plot.title = element_text( size = 12));
+
+inside_geom <- inside_geom + ggtitle("... + geom_point(aes(x=h, y=v))") + 
+				theme( plot.title = element_text( size = 12));
+
+inside_ggplot <- inside_ggplot + ggtitle("ggplot(df, aes(h,v)) + ...") + 
+				theme( plot.title = element_text( size = 12));
+
+multiplot(inside_geom, aes_alone, inside_ggplot, cols=3);
+```
+
+The aesthetics layer can take expressions for X and Y arguments, plotting transformations of data without changing the data itself.
+```{r}
+h <- 1:10;
+v <- 1:10;
+```
+
+```{r fig.show='hide'}
+# this plots Y vs X
+ggplot() + aes(x=h, y=v) + geom_line();
+
+# this plots Y^2 vs X, without changing the vector v
+ggplot() + aes(x=h, y=v^2) + geom_line();
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+# print figures without showing ANY generating code or messages
+
+y_linear <- ggplot() + aes(x=h, y=v) + geom_line();
+y_squared <- ggplot() + aes(x=h, y=v^2) + geom_line();
+
+y_linear <- y_linear + ggtitle("Y Linear");
+y_squared <- y_squared +ggtitle("Y Squared");
+
+multiplot(y_linear, y_squared, cols=2);
+```
+
+### The geometry Layer `geom_...()`
+Each geometry layer contains 1 shape which determines the type of plot by specifying what shape to draw (points, lines, bars, etc); geometry layers are initialized by geometry methods: `geom_point()`, `geom_line()`, etc. 
+
+Changing the geometry method changes the type of plot:
+```{r}
+h <- 0:6;
+v <- c(0,8,5,6,4,3,8);
+```
+
+```{r fig.show='hide'}
+# scatter plot
+ggplot() + aes(x = h, y = v ) + geom_point();
+
+# line plot
+ggplot() + aes(x = h, y = v ) + geom_line();
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center'}
+s <- ggplot() + aes(x = h, y = v ) + geom_point();
+l <- ggplot() + aes(x = h, y = v ) + geom_line();
+
+s <- s + ggtitle("... + geom_point()");
+l <- l + ggtitle("... + geom_line()");
+
+multiplot(s, l, cols=2);
+```
+
+The most important geometry objects are
+
+* `geom_point()` for scatter plots
+* `geom_line()` for line plots
+* `geom_bar()` for bar graphs, pie charts, and histograms
+* `geom_boxplot()` for box and whisker plots
+
+A complete list of the 37 ggplot2 geometry layer objects is shown in [Section 6: Geometry Layers]("#Geometry Layers")
+	
+# Plotting Things
+Basic graph syntax always looks like this:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_point()
+```
+These commands will create and display a graph object. 
+
+You can also store the graph object in a variable, then display it later.
+```{r eval=FALSE}
+my_graph <- ggplot() + aes(x = , y = ) + geom_point();
+print( my_graph );
+```
+
+## Scatterplots
+XY Scatterplots are drawn with the [`geom_point`](http://docs.ggplot2.org/current/geom_point.html) geometry object. They take 2 arguments, X and Y.  
+
+Basic scatter plot syntax is:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_point()
+```
+
+X and Y are always declared in an aesthetic layer `aes(x = __, y = __)`. 
+
+### Scatterplot with 2 vectors
+
+```{r fig.align='center'}
+h <- seq(from = 0, to = 7, by = .05);
+v <- sin(h);
+
+ggplot() + aes(x=h, y=v) + geom_point();
+```
+
+### Scatterplot with a data frame
+
+```{r fig.align='center'}
+
+df_meat <- data.frame( weight=1:10, price=(0.3 * (1:10)^2) );
+
+ggplot(df_meat) + aes(x=weight, y=price) + geom_point();
+```
+
+
+## Line Plots
+Line plots are drawn with the [`geom_line`](http://docs.ggplot2.org/current/geom_line.html) geometry object. They take 2 arguments, X and Y.  
+
+Basic line plot syntax is:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_line()
+```
+
+X and Y are always declared in an aesthetic layer `aes(x = __, y = __)`. 
+
+### Line Plot with 2 vectors
+
+```{r fig.align='center'}
+h <- seq(from = 0, to = 7, by = .05);
+v <- sin(h);
+
+ggplot() + aes(x=h, y=v) + geom_line();
+```
+
+
+### Line Plot with a data frame
+
+```{r fig.align='center'}
+df_meat <- data.frame( weight=1:10, price=(0.3 * (1:10)^2) );
+
+ggplot(df_meat) + aes(x=weight, y=price) + geom_line();
+```
+
+
+## Box and Whisker Plots
+
+## Bar Charts
+Bar Charts are drawn with the [`geom_bar`](http://docs.ggplot2.org/current/geom_bar.html) geometry object. They take 1 or 2 arguments: X, or X and Y.  In addition, bar charts **require** X and Y to be statistically transformed before plotting.
+
+Basic bar chart syntax is
+```{r eval=FALSE}
+ggplot() + aes(x = ) + geom_bar( stat = )
+```
+
+X and Y are always declared in an aesthetic layer `aes(x = , y = )`.  The statistical transformation is done by passing a the name of a ggplot2 statistical transformation method to the `stat` parameter in the geometry object: `geom_bar( stat = _____)`
+
+Input Vectors 	| `stat` = 	| Invokes
+--------------- | ------------- | ---------------------	
+X		| "bin"		| [`ggplot2::stat_bin()`](http://docs.ggplot2.org/current/stat_bin.html)
+X and Y		| "identity"	| [`ggplot2::stat_identity()`](http://docs.ggplot2.org/current/stat_identity.html)
+
+
+
+### Bar Chart with 1 Vector
+When only 1 argument (X) is used, perform a *binning* transformation by setting `geom_bar(stat = "bin")`.
+
+In this case the *value* of each item in the vector X is treated as a discrete value along the x-axis, while the y-axis displays some kind of information about each X value.
+
+Minimal syntax for a 1 vector bar chart is: 
+```{r eval=FALSE}
+ggplot() + aes(x = __ ) + geom_bar( stat = "bin" )
+```
+
+In the following example, the x-axis shows all the possible values within the domain of a vector `h`, and the y-axis shows the number of times each value actually appears.  (Otherwise known as a histogram.)
+```{r fig.show='hide', message=FALSE}
+
+h1 <- c(1,2,3,4,5,6);
+one_of_each <- ggplot() + aes(x = h1) + geom_bar(stat = "bin");
+
+h2 <- c(1,1,1,2,3,3,5,6,6);
+each_different <- ggplot() + aes(x = h2) + geom_bar(stat = "bin");
+
+print(one_of_each);  print(each_different);
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+
+# add tick label for all ints 1:6 --> to aid visibility of example
+p1 <- one_of_each + scale_x_continuous(breaks=seq(1,6,1)); 
+p2 <- each_different + scale_x_continuous(breaks=seq(1,6,1));
+
+# @deprecated -- for debugging
+#group_1 + scale_x_continuous(breaks=seq(1,6,1));
+#group_2 + scale_x_continuous(breaks=seq(1,6,1));
+
+multiplot(p1, p2, cols=2);
+```
+
+### Bar Chart with 2 Vectors
+When using both X and Y arguments, perform an *identity* transformation by setting `geom_bar(stat = "identity")`.  This makes a bar chart function like a line or scatter plot.
+
+Minimal syntax for a 2 vector bar chart is: 
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_bar( stat = "identity" )
+```
+
+```{r fig.show='hide'}
+h <- 1:6;
+v <- 1:6;
+
+bar_chart <- ggplot() + aes(x=h, y=v^2) + geom_bar(stat="identity");
+
+print(bar_chart);
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=4.2}
+# print figures without showing ANY generating code or messages
+
+bar_chart <- bar_chart + scale_x_continuous(breaks=seq(1,6,1));
+
+print(bar_chart);
+```
+
+
+
+<a name="histograms"></a>
+
+### Histograms
+Histograms are drawn with `geom_histogram( )`, and do not need the `stat` argument.
+
+Minimal syntax for a histogram is:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_histogram()
+```
+
+The Y axis displays the number of times each X value occurs in the vector `h`.
+```{r message=FALSE, fig.align='center', fig.height=3, fig.width=4}
+h <- c(1,1,1,2,3,3,5,6,6);
+
+ggplot() + aes(x = h) + geom_histogram()
+```
+
+### Stacked Bar Charts
+Stacked bar charts break X and Y data into multiple groups.  The groups are differentiated by color, automatically determined by ggplot2.  A legend is also added automatically.
+
+Minimal syntax for a stacked bar chart is
+```{r eval=FALSE}
+ggplot() + aes( x = __, y = __, fill = _____ ) + geom_bar( stat = ______ )
+```
+
+In the `aes()` method, `fill = ____` requires a vector listing the group labels. The `fill` vector must be the same length as the X and Y vectors.
+
+The `aes()` parameters may be data frame columns, or 3 independent, equal length vectors.
+```{r }
+# Example: 6 fish were measured, weighed, and labeled by gender
+
+length <- c(1,1,2,3,3,3)
+
+weight <- c(2, 1, 3, 5, 4, 4);
+
+gender <- c("male", "female", "female", "female", "male", "female");
+
+```
+
+```{r echo=FALSE}
+# for display purposes only
+data.frame(length, weight, gender);
+```
+
+
+```{r fig.show='hide'}
+ggplot() + aes(x=length, y=weight, fill=gender) + geom_bar(stat="identity");
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=4.2}
+# print figures without showing ANY generating code or messages
+fish_chart <- ggplot() + aes(x=length, y=weight, fill=gender) + geom_bar(stat="identity") +
+		ylab("Total Catch Weight per Length") + 
+		ggtitle("Fish Sample: Catch Weight by Length and Gender") +
+		theme(title = element_text(size = 8) ) + 
+		scale_y_continuous( breaks = seq( from = 0, to = 14 , by = 2 ) );
+
+print(fish_chart);
+```
+The colors are displayed in literal order from the `gender` vector; we would have to sort the source data by gender to plot all males on top/bottom. This usually only happens when using independent vectors.  Aggregated data from data frames is almost always pre-sorted.
+
+### Grouped Bar Charts
+Grouped charts start as stacked bar charts, then add `position = position_dodge()` to `geom_bar()`
+
+Minimal syntax for a grouped bar chart is:
+```{r eval=FALSE}
+ggplot() + aes( x = , y = , fill = ) + geom_bar( stat = , position = position_dodge() )
+```
+
+The `position_dodge()` method displaces objects.  In this case it repositions the stacked chart bars so that they are adjacent.  Positive numeric arguments to `position_dodge()` move bars to the right; negative arguments move bars to the left.
+
+```{r}
+h <- c(1,1,2,2);
+v <- c(2, 1, 4, 5);
+
+kind <- c("M", "F", "F", "M");
+```
+
+```{r fig.height=3, fig.show='hide'}
+# stacked bar chart
+ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity");
+
+# grouped bar chart, using position_dodge(0.98)
+ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity", position = position_dodge(0.98));
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3}
+# print figures without showing ANY generating code or messages
+
+stacked_chart <- ggplot() +
+			aes(x=h, y=v, fill=kind) +
+			geom_bar(stat="identity") +
+			ggtitle("Stacked Chart");
+
+grouped_chart <- ggplot() +
+			aes(x=h, y=v, fill=kind) +
+			geom_bar(stat="identity", position = position_dodge(0.98)) +
+			ggtitle("Grouped Chart");
+
+
+# often used with multiplot:
+multiplot(stacked_chart, grouped_chart, cols=2);
+```
+
+
+Change the argument to `position_dodge()` to control the left/right order of the bars.
+```{r}
+h <- c(1,1,2,2);
+v <- c(2, 1, 4, 5);
+
+kind <- c("M", "F", "F", "M");
+```
+
+```{r fig.show='hide'}
+
+# move blue bars to the right
+ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity", position = position_dodge(1));
+
+# move blue bars to the left
+ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity", position = position_dodge(-1));
+
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3}
+# print figures without showing ANY generating code or messages
+grouped_chart_fm <- ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity", position = position_dodge(1));
+grouped_chart_mf <- ggplot() + aes(x=h, y=v, fill=kind) + geom_bar(stat="identity", position = position_dodge(-1));
+
+grouped_chart_fm <- grouped_chart_fm + ggtitle("position_dodge(1)");
+grouped_chart_fm <- grouped_chart_fm + theme(title = element_text(size=10));
+
+grouped_chart_mf <- grouped_chart_mf + ggtitle("position_dodge(-1)");
+grouped_chart_mf <- grouped_chart_mf + theme(title = element_text(size=10));
+# often used with multiplot:
+multiplot(grouped_chart_fm, grouped_chart_mf, cols=2);
+```
+
+## Pie Charts
+
+## Plotting Multiple Series
+
+# Controlling Axes
+
+## Labeling Axes
+Use `xlab()` and `ylab()`
+```{r fig.height=3, fig.width=4, fig.align='center'}
+h <- 1:6; 
+v <- 1:6;
+
+ggplot() + aes(x=h, y=v) + geom_point() + xlab("The X Axis") + ylab("The Y Axis");
+```
+
+## Setting Axis Ranges
+Use `expand_limits(x = , y = )` ; pass range limits to `x = __`, `y = __`, or both. 
+
+```{r}
+h <- 1:10; 
+v <- 1:10;
+```
+
+```{r fig.show='hide'}
+# default axis ranges
+ggplot() + aes(h,v) + geom_point();
+
+# expanded axis ranges
+ggplot() + aes(h,v) + geom_point() + expand_limits(x = c(-2,12), y = c(0,12));
+```
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3,}
+# print figures without showing ANY generating code or messages
+
+def <- ggplot() + aes(h,v) + geom_point() + ggtitle("Default Axes");
+
+exp <- def + expand_limits(x = c(-2,12), y = c(0,12)) + ggtitle("Expanded Axes");
+
+multiplot(def, exp, cols=2);
+```
+
+## Setting Tick Intervals
+Use `scale_x_continuous( breaks = )` and `scale_y_continuous( breaks = )`
+
+General syntax for setting x-axis tick intervals is
+```{r eval=FALSE}
+ggplot() + aes( x = , y = ) + geom_point() + scale_x_continuous( breaks = seq( from = , to =  , by = ) )
+```
+
+The `breaks` parameter refers directly to the axis ticks.  Set the ticks by creating a sequence with a defined domain and step interval: `seq( from = __, to = __, by = __ )`
+
+```{r}
+h <- 1:10; 
+v <- 1:10;
+```
+
+```{r fig.show='hide'}
+
+# default tick intervals
+default_scale <- ggplot() + aes(x=h, y=v) + geom_point();
+
+# custom tick intervals
+ggplot() + aes(x=h, y=v) + geom_point() + 
+	scale_x_continuous( breaks=seq( from=0, to=10, by=2) ) +
+	scale_y_continuous( breaks=seq( from=0, to=10, by=1) ) ;
+
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+# print figures without showing ANY generating code or messages
+default_scale <- ggplot() + aes(x=h, y=v) + geom_point() + ggtitle("Default Intervals");
+
+custom_scale <- ggplot() + aes(x=h, y=v) + geom_point() +
+			scale_x_continuous( breaks=seq( from=0, to=10, by=2) ) +
+			scale_y_continuous( breaks=seq( from=0, to=10, by=1) ) +
+			ggtitle("Custom Intervals") +
+			theme(plot.title = element_text(color="red")) +
+			theme(axis.text = element_text(color="red"));
+
+multiplot(default_scale, custom_scale, cols=2);
+```
+
+## Adding New Axes
+
+# Adding Text
+
+## Adding a Title
+
+## Adding Axis Labels
+
+## Adding Annotations
+
+## Adding Legends
+
+# Controlling Text
+Modify any existing text element by adding `theme()` functions to your graph. Access a specific text element by passing one of the 17 [ggplot2 text elements](#textElements) into `theme()`, then modify one of its [9 attributes](#textAttributes) with the `element_text()` function.
+
+The text element always has a form similar to `axis.text.x` or `legend.title`. All text elements passed into `theme()` always take a value of the form `element_text(attribute_1 = value_1, attribute_2 = value_2, ...)`.
+
+General syntax is:    
+```{r eval=FALSE}
+ggplot() + ... + theme( specific.text.element = element_text(attr_1 = val_1, attr_2 = value_2) )
+```
+
+
+A complete example looks like:
+```{r }
+h <- 1:10; v <- 1:10;
+
+ggplot() + aes(x=h , y=v ) + geom_point() + 
+	ggtitle("My Plot") + 
+	theme( plot.title   = element_text( size = 24, color = "blue" ) ) +
+	theme( axis.title.y = element_text( face = "italic", color = "red" ) );
+
+```
+
+
+
+## Changing Text Color
+Modify any existing text element by adding `theme()` functions to your graph. Access a specific text element by passing one of the 17 [ggplot2 text elements](#textElements) into `theme()`, then modify one of its [9 attributes](#textAttributes) with the `element_text()` function.
+
+Change text color by adding `theme( specific.text.element = element_text( color = ) )`
+
+Change text color by assigning a color string to the *color* argument of the `element_text()` function inside `theme()`. Color string values are either preset names: **"royalblue"**, or hexadecimal color codes: **"#029f4aEC"**
+
+Use `grDevices::colors()` to list the 657 R color names that can be used with ggplot2.
+
+General syntax for changing text color is:
+```{r eval=FALSE}
+ggplot() + aes(x= , y= ) + geom_point() + ... + theme( specific.text.element = element_text( color =  ) )
+```
+
+<br />
+
+The default text color is black.  This title text would look better green:
+```{r}
+h = 1:6; v = 1:6;
+```
+
+```{r fig.show='hide'}
+# black title
+ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("My Black Title") ;
+
+# green title
+ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("My Green Title") + 
+	theme( plot.title = element_text( color = "#029f4aEC" ));
+
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+black_title <- ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("My Black Title") ;
+
+green_title <- black_title + theme( plot.title = element_text( color = "#029f4aEC" )) + ggtitle("My Green Title");
+
+multiplot(black_title, green_title, cols=2);
+```
+
+## Text Effects - Italic, Bold, etc.
+Use `theme( specific.text.element = element_text( face = ) )`
+
+Make text bold or italic by assigning an effect string to the *face* argument of the `element_text()` function inside `theme()`. 
+
+General syntax for font effects is:
+```{r eval=FALSE}
+ggplot() + aes(x= , y= ) + geom_point() + ... + theme( specific.text.element = element_text( face =  ) )
+```
+
+Allowable `face` values
+
+* plain 
+* bold
+* italic
+* bold.italic
+
+
+```{r}
+h <- 1:6;
+v <- 1:6;
+```
+
+```{r fig.show='hide'}
+# no text effect
+ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("Plain");
+
+# bold 
+ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("Bold") + theme(plot.title = element_text(face="bold"));
+
+# italic
+ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("Italic") + theme(plot.title = element_text(face="italic"))
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=8}
+# print figures without showing ANY generating code or messages
+
+p <- ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("Plain");
+
+b <- p + ggtitle("Bold") + theme(plot.title = element_text(face="bold"));
+
+i <- p + ggtitle("Italic") + theme(plot.title = element_text(face="italic"));
+
+multiplot(p, b, i, cols=3);
+```
+
+## Rotating Text
+Use `theme( specific.text.element = element_text( angle = ) )`
+
+Rotate text by assigning a number from 0 to 360 to the `angle` argument of the `element_text()` function inside `theme()`.  
+
+General syntax for rotating text is:
+```{r eval=FALSE}
+ggplot() + aes(x= , y= ) + geom_point() + ... + theme( specific.text.element = element_text( angle = ) )
+```
+
+Rotate the x and y-axis labels:
+```{r eval=FALSE}
+h <- 1:6;  v <- 1:6;
+```
+
+```{r fig.show='hide'}
+
+# basic ggplot graph + axis labels
+normal  <- ggplot() + aes(h,v) + geom_point() + xlab("X Axis Label") + ylab("Y Axis Label");
+
+print(normal);
+
+rotated <- ggplot() + aes(h,v) + geom_point() + xlab("X Axis Label") + ylab("Y Axis Label");
+
+# add a theme to rotate x-axis label
+rotated <- normal  + theme(axis.title.x = element_text(angle = 55));
+
+# add a theme to rotate y-axis label (default y-label angle is 90)
+rotated <- rotated + theme(axis.title.y = element_text(angle = 100));
+
+print(rotated);
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+normal  <- ggplot() + aes(h,v) + geom_point() + 
+		xlab("X Axis Label") + ylab("Y Axis Label") + ggtitle("Default Axis Labels");
+
+rotated <- normal + ggtitle("Rotated Axis Labels");
+rotated <- rotated + theme(axis.title.x = element_text(angle = 55));
+rotated <- rotated + theme(axis.title.y = element_text(angle = 100));
+
+# this ggtitle() overwrites the previous title value
+rotated <- rotated + ggtitle("Rotated Axis Labels"); 
+
+multiplot(normal, rotated, cols=2);
+
+```
+
+> The angle for both labels is calculated relative to the page
+> 
+> The label orientation influences the plot panel's size
+>
+> The default angle for the y-axis label is 90°
+
+## Changing Text Size
+Use `theme( specific.text.element = element_text( size = ) )`
+
+Change text size by passing a number to the `size` parameter of `element_text()`.  The number is a font size point value.
+
+General syntax for changing text size is:
+```{r eval=FALSE}
+ggplot() + aes(x= , y= ) + geom_point() + ... + theme( specific.text.element = element_text( size = ) )
+```
+
+
+Default text size is 14 pt
+```{r}
+h <- 1:10; v <- 1:10;
+```
+
+
+```{r fig.show='hide'}
+
+# default text size is 14 pt
+default <- ggplot() + aes(x=h , y=v ) + geom_point() + ggtitle("14 pt Text") ;
+
+print(default);
+
+# overwrite existing title, enlarge title text
+big <- default + ggtitle("24 pt Text") + theme( plot.title = element_text( size = 24 ));
+
+print(big);
+```
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+# print figures without showing ANY generating code or messages
+
+multiplot(default, big, cols=2);
+```
+
+## Adjusting Text Position
+Use `theme( specific.text.element = element_text( hjust = __, vjust = __ )`
+
+Text is adjusted (justified) horizontally and vertically by assigning values to the `hjust` and `vjust` arguments of the `element_text()` function inside `theme()`.  
+
+General syntax for adjusting text position is:
+```{r eval=FALSE}
+ggplot() + aes(x= , y= ) + geom_point() + ... + theme( specific.text.element = element_text( hjust = , vjust = ) )
+```
+
+`hjust` and `vjust` each take values from 0 to 1, and each has a default value of 0.5
+
+Argument	| Value		| Adjustment
+--------------- | ------------- | -------------
+hjust		| 0.0 -- 0.49	| Left
+vjust		| 0.0 -- 0.49	| Down
+hjust		| 0.51 -- 1.0	| Right
+vjust		| 0.51 -- 1.0	| Up		
+
+Adjustments are calculated relative to the text itself. Regardless of the text element's rotation, 'Up' is always towards the top of the letters, and 'Right' is always towards the end of the text. This is often an issue when moving y-axis labels.
+
+Move the plot title:
+```{r}
+h <- 1:6; v <- 1:6;
+```
+
+```{r fig.show='hide'}
+# center justified
+default <- ggplot() + aes(h,v) + geom_point() + ggtitle("Default");
+
+print(default);
+
+# bottom-left justified
+down_left <- default + theme(plot.title = element_text(hjust = 0, vjust = 0) );
+
+print(down_left);
+
+# upper-right justified
+up_right  <- default + theme(plot.title = element_text(hjust = 1, vjust = 1) );
+
+print(up_right);
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=9}
+#  overwrite the original title
+down_left <- down_left + ggtitle("hjust=0, vjust=0") + theme(plot.title =  element_text( color = "red" ));
+
+up_right <- up_right + ggtitle("hjust=1, vjust=1") + theme(plot.title =  element_text( color = "red" ));
+
+multiplot(default, down_left, up_right, cols = 3);
+```
+
+> The title is bounded by the figure margin; using the max and min hjust & vjust values is like setting text alignment to the left/right/top/bottom in a document.
+>
+>
+> Note: When adjusting axis tick labels (`axis.text`), hjust and vjust sometimes behave unexpectedly.  This may have something to do with the figure margins, but the tick labels can be correctly moved by experimenting with a few different values for hjust and vjust.
+
+# Color
+http://www.colorsontheweb.com/default.asp
+
+https://color.adobe.com/create/color-wheel/
+
+# Appendix
+
+## Geometry Layers
+There are 37 geometry layers available
+
+* [Examples]("http://sape.inf.usi.ch/quick-reference/ggplot2/geom") from SAPE (outdated but still good)
+
+
+This table shows which geometry objects work without errors for which basic plot types.
+
+Geometry       	| Scatter	 | Bar	 | Pie	 | Contour |
+-------------- 	| -------------- | ----- | ----- | ------- |
+abline		| no
+area	       	| yes
+bar		| no
+bin2d		| yes
+blank		| yes
+boxplot		| yes
+contour		| no
+crossbar	| no
+density		| no
+density2d	| yes
+dotplot		| yes
+errorbar	| no
+errorbarh	| no
+freqpoly	| no
+hex		| yes
+histogram	| no
+hline		| no
+jitter		| yes
+line		| yes
+linerange	| no
+map		| no
+path		| yes
+point		| yes
+pointrange	| no
+polygon		| yes
+quantile	| no
+raster		| yes
+rect		| no
+ribbon		| no
+rug		| yes
+segment		| no
+smooth		| yes
+step		| yes
+text		| no
+tile		| yes
+violin		| yes
+vline		| yes
+
+
+<a name="textElements"></a>
+
+## List of Text Elements 
+
+From http://docs.ggplot2.org/current/theme.html:    
+Text elements that can be accessed by `theme()`
+
+Name       	| Description	 		| Details	
+---------------	| -----------------------------	| ----------------------------------------------
+text 		| all text elements 		| (element_text)
+title 		| all title elements: plot, axes, legends | (element_text; inherits from text) 
+axis.title	| label of axes 		| (element_text; inherits from text)
+axis.title.x 	| x axis label 			| (element_text; inherits from axis.title)
+axis.title.y 	| y axis label 			| (element_text; inherits from axis.title)
+axis.text 	| tick labels along axes 	| (element_text; inherits from text)
+axis.text.x 	| x axis tick labels 		| (element_text; inherits from axis.text)
+axis.text.y 	| y axis tick labels 		| (element_text; inherits from axis.text)
+legend.text 	| legend item labels 		| (element_text; inherits from text)
+legend.text.align 	| alignment of legend labels | (number from 0 (left) to 1 (right))
+legend.title	 | title of legend 		| (element_text; inherits from title)
+legend.title.align 	| alignment of legend title | (number from 0 (left) to 1 (right))
+legend.direction 	| layout of items in legends | ("horizontal" or "vertical")
+plot.title 	| plot title (text appearance)  | (element_text; inherits from title)
+strip.text 	| facet labels 			| (element_text; inherits from text)
+strip.text.x 	| facet labels along horizontal direction | (element_text; inherits from strip.text)
+strip.text.y 	| facet labels along vertical direction | (element_text; inherits from strip.text) 
+
+<a name="textAttributes"></a>
+
+## List of Text Attributes
+From http://docs.ggplot2.org/current/element_text.html:    
+Text attributes that are modified by `element_text()`
+
+
+Name       	| Description	 		| Example Values
+---------------	| -----------------------------	| ----------------------------------------------
+family 		| font family 			|  
+face		| font face 			| "plain", "italic", "bold", "bold.italic"		
+color		| text color 			| "red", "#FF1493"
+colour    	| text colour			| "red",  "#FF1493"
+size    	| text size (in pts)		| 12, 14, 20
+hjust    	| horizontal justification 	| (in [0, 1]);  0--.49 = left;  .51--1 = right	
+vjust    	| vertical justification 	| (in [0, 1]);  0--.49 = down;  .51--1 = up
+angle    	| angle  			| (in [0, 360]);  counter-clockwise
+lineheight    	| line height 			|					|
+
