@@ -21,6 +21,6 @@ All cookbook code works as written. When in doubt:
 
 Each cookbook directory is created with the 
 [R Project Template]("http://projecttemplate.net/getting_started.html") package.
-Rmd source and woven output files are in the **<r_package_name>/docs** directories.
+Rmd source and html/pdf/LaTeX output files are in **r_package_name/docs** 
 
 
