@@ -3,5 +3,8 @@
 
 # R files
 *.Rproj
+*.Rproj
 *.RData
+*.Rdata
 *.RHistory
+*.Rhistory
