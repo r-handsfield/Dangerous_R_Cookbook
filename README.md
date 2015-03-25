@@ -1,4 +1,4 @@
-# Dangerous_R_Cookbook
+# Dangerous R Cookbook
 Just enough R to be dangerous!
 
 Dangerous R Cookbook is a set of tutorials for various R packages. 
