@@ -82,12 +82,12 @@ Note: *Semicolons ';' are not required in R, unless you're putting multiple stat
 ## Links
 Official ggplot2 documentation, and other worthwhile guides. Many examples throughout *DRC:ggplot2* link back to the official documentation.
 
-* [Source Code]("http://cran.r-project.org/src/contrib/ggplot2_1.0.0.tar.gz") on CRAN (tar.gz)
-* Official Github [Repository]("https://github.com/hadley/ggplot2")
-* Official [Manual]("http://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf") on CRAN (.pdf)
-* Official [Documentation]("http://docs.ggplot2.org/current/")
-* [Examples]("http://www.cookbook-r.com/Graphs/") from cookbook-r.com
-* [Quick Reference]("http://sape.inf.usi.ch/quick-reference/ggplot2") from SAPE
+* [Source Code](http://cran.r-project.org/src/contrib/ggplot2_1.0.0.tar.gz) on CRAN (tar.gz)
+* Official Github [Repository](https://github.com/hadley/ggplot2)
+* Official [Manual](http://cran.r-project.org/web/packages/ggplot2/ggplot2.pdf) on CRAN (.pdf)
+* Official [Documentation](http://docs.ggplot2.org/current/)
+* [Examples](http://www.cookbook-r.com/Graphs/) from cookbook-r.com
+* [Quick Reference](http://sape.inf.usi.ch/quick-reference/ggplot2) from SAPE
 
 ## Architecture
 **ggplot2** is an R package for making graphs.  It works pretty well.  
@@ -424,12 +424,14 @@ h <- c(1,1,1,2,3,3,5,6,6);
 ggplot() + aes(x = h) + geom_histogram()
 ```
 
+<a name="stackedBardChart"></a>
+
 ### Stacked Bar Charts
 Stacked bar charts break X and Y data into multiple groups.  The groups are differentiated by color, automatically determined by ggplot2.  A legend is also added automatically.
 
-Minimal syntax for a stacked bar chart is
+Minimal syntax for a stacked bar chart is:
 ```{r eval=FALSE}
-ggplot() + aes( x = __, y = __, fill = _____ ) + geom_bar( stat = ______ )
+ggplot() + aes( x = , y = , fill = ) + geom_bar( stat = )
 ```
 
 In the `aes()` method, `fill = ____` requires a vector listing the group labels. The `fill` vector must be the same length as the X and Y vectors.
@@ -545,6 +547,66 @@ multiplot(grouped_chart_fm, grouped_chart_mf, cols=2);
 ```
 
 ## Pie Charts
+Make a pie chart by creating a [stacked bar chart]("#stackedBarChart"), then changing the axes with 
+`coord_ploar(theta = )`. `theta` always takes the value `"x"` or `"y"` 
+
+Minimal syntax for a pie chart:
+```{r eval=FALSE}
+ggplot() + aes(x = , y = ) + geom_bar(stat = ) + coord_polar(theta = )
+```
+
+<br />
+
+A very basic pie chart. `y` is the distance arround the circle.
+```{r fig.align='center', fig.height=3, fig.width=3}
+h<-1:6; v<-1:6;
+
+ggplot() + aes(x=h, y=v) + geom_bar(stat="identity") + coord_polar(theta = "y") 
+```
+
+To create a traditional pie chart, make a bar chart with 1 column before changing coordinates.
+```{r}
+# 10 fish from various ponds are compared
+weight <- c(.11, .32, .07, .22, .15);
+pond <- c(1,2,3,4,5);
+```
+
+```{r echo=FALSE, eval=TRUE}
+# for display only
+
+# weight <- c(.11, .32, .07, .22, .15, .33, .11, .3, .27, .18);
+# pond <- c(1,2,3,4,5, 1,2,3,4,5);
+# sex <- c('M', 'M', 'M', 'F', 'M', 'F', 'F', 'F', 'M', 'F')
+df <- data.frame(weight, pond);
+
+df
+```
+
+```{r fig.height=3, fig.show='hide'}
+# stacked bar chart comparing weight by pond
+ggplot() + aes(x=1, y=weight, fill=factor(pond)) + geom_bar(stat="identity");
+
+# the corresponding pie chart
+ggplot() + aes(x=1, y=weight, fill=pond) + geom_bar(stat="identity") + coord_polar(theta="y");
+
+# cast 'pond' to a factor to improve the colors: fill= factor(pond)
+ggplot() + aes(x=1, y=weight, fill=factor(pond)) + geom_bar(stat="identity") + coord_polar(theta="y");
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=9}
+# print figures without showing ANY generating code or messages
+
+
+# stacked bar chart with 1 bar
+bar <- ggplot() + aes(x=factor(1), y=weight, fill=factor(pond)) + geom_bar(stat="identity");
+
+# the corresponding pie chart
+pie1 <- ggplot() + aes(x=1, y=weight, fill=pond) + geom_bar(stat="identity") + coord_polar(theta="y");
+pie2 <- ggplot() + aes(x=1, y=weight, fill=factor(pond)) + geom_bar(stat="identity") + coord_polar(theta="y");
+multiplot(bar, pie1, pie2, cols=3);
+```
+
+
 
 ## Plotting Multiple Series
 
@@ -899,8 +961,9 @@ https://color.adobe.com/create/color-wheel/
 
 # Appendix
 
-## Geometry Layers
-There are 37 geometry layers available
+<a name="geomObjects"></a>
+## Geometry Objects
+There are 37 geometry objects available
 
 * [Examples]("http://sape.inf.usi.ch/quick-reference/ggplot2/geom") from SAPE (outdated but still good)
 
