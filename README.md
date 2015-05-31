@@ -1,4 +1,4 @@
-# Dangerous_R_Cookbook
+# Dangerous R Cookbook
 Just enough R to be dangerous!
 
 Dangerous R Cookbook is a set of tutorials for various R packages. 
@@ -21,6 +21,6 @@ All cookbook code works as written. When in doubt:
 
 Each cookbook directory is created with the 
 [R Project Template](http://projecttemplate.net/getting_started.html) package.
-Rmd source and html/pdf/LaTeX output files are in **r_package_name/docs** 
+Rmd source and html/pdf/LaTeX output files are in **r_package_name/doc** 
 
 
