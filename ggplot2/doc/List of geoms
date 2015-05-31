@@ -1,0 +1,62 @@
+Geometries for scatterplots (18 of 37)
+----------------------------------
+area
+bin2d
+blank
+boxplot
+density2d
+dotplot
+hex
+jitter
+line
+path
+point
+polygon
+raster
+rug
+smooth
+step
+tile
+violin
+
+
+
+All
+-----------------------
+abline	no
+area	yes
+bar	no
+bin2d	yes
+blank	yes
+boxplot	yes
+contour	no
+crossbar	no
+density	no
+density2d	yes
+dotplot	yes
+errorbar	no
+errorbarh	no
+freqpoly	no
+hex	yes
+histogram	no
+hline	no
+jitter	yes
+line	yes
+linerange	no
+map	no
+path	yes
+point	yes
+pointrange	no
+polygon	yes
+quantile	no
+raster	yes
+rect	no
+ribbon	no
+rug	yes
+segment	no
+smooth	yes
+step	yes
+text	no
+tile	yes
+violin	yes
+vline

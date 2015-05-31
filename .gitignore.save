@@ -1,0 +1,11 @@
+# .gitignore for Dangerous_R_Cookbook
+#
+
+# R files
+*.Rproj
+*.Rproj
+*.RData
+*.Rdata
+*.RHistory
+*.Rhistory
+

@@ -1,0 +1,20 @@
+Geometries for scatterplots (of 37)
+----------------------------------
+area
+bin2d
+blank
+boxplot
+density2d
+dotplot
+hex
+jitter
+line
+path
+point
+polygon
+raster
+rug
+smooth
+step
+tile
+violin

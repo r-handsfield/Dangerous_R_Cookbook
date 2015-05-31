@@ -1,0 +1,216 @@
+---
+title: "stubs"
+author: "Robert Handsfield"
+date: "02/26/2015"
+output:
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+    theme: cerulean
+    toc: yes
+---
+
+## knitr figure manipulation
+```{r fig.show='hide'}
+# suppress the printed figures
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center'}
+# print figures without showing ANY generating code or messages
+
+# often used with multiplot:
+# multiplot(normal, rotated, cols=2);
+```
+
+----------------------
+
+### Colored backgrounds
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=3, fig.width=9}
+# print figures without showing ANY generating code or messages
+aes_alone <- ggplot() + aes(x=h, y=v) + geom_point();
+inside_geom <- ggplot() + geom_point( aes(x=h, y=v) );
+inside_ggplot <- ggplot(df, aes(h, v) ) + geom_point();
+
+aes_alone <- aes_alone + ggtitle("... + aes(x=h,y=v) + ...") + 
+				theme( plot.title = element_text( size = 12)) +
+				theme(panel.background = element_rect(fill="#93FFFFCC"));
+
+inside_geom <- inside_geom + ggtitle("... + geom_point(aes(x=h, y=v))") + 
+				theme( plot.title = element_text( size = 12)) +
+				theme(panel.background = element_rect(fill="#FFC382CC"));
+
+inside_ggplot <- inside_ggplot + ggtitle("ggplot(df, aes(h,v)) + ...") + 
+				theme( plot.title = element_text( size = 12)) +
+	     			theme(panel.background = element_rect(fill="#CC7FB8CC"));
+
+multiplot(inside_geom, aes_alone, inside_ggplot, cols=3);
+```
+
+### Titles and Labels
+
+### Annotations
+
+### Facets
+
+### Other Stuff
+1. Themes: control labels, axis tick marks, 
+	+ theme()
+2. Statistics layers:
+	+ `stat_smooth()`, `stat_binhex()`, etc.
+3. Scales: Add a visual parameter -- color, size, etc. -- to the plot
+	+ `scale_shape()`, `scale_size()`, ``, etc.
+4. Coordinates: change the coordinate system
+	+ `coord_cartesian()`, `coord_polar()`, etc.
+----------------------
+
+### Discrete Scales
+A continuous scale will only extend axis ticks at values where there are data points.  To force a tick drawing, or extend axes beyond the range of the data (for display purposes), use a discrete scale.
+```{r eval=FALSE}
+ggplot() + aes( x =__, y =__ ) + geom_point() + scale_x_discrete( breaks = seq( from =__, to =__ , by =__ ))
+```
+
+
+```{r fig.show='hide'}
+h <- 1:6; v <- 1:6;
+
+scale_continuous <- ggplot() + aes(x=h, y=v) + geom_point();
+scale_continuous <- scale_continuous + scale_x_continuous( breaks=seq( from=-2, to=8, by=2) );
+scale_continuous <- scale_continuous + scale_y_continuous( breaks=seq( from=-2, to=8, by=2) );
+
+scale_discrete <- ggplot() + aes(x=h, y=v) + geom_point();
+scale_discrete <- scale_discrete + scale_x_discrete( breaks=seq( from=-2, to=8, by=2) );
+scale_discrete <- scale_discrete + scale_y_discrete( breaks=seq( from=-2, to=8, by=2) );
+
+print(scale_continuous); print(scale_discrete);
+```
+
+```{r echo=FALSE, results='hide', message=FALSE, fig.align='center', fig.height=4}
+# print figures without showing ANY generating code or messages
+
+scale_continuous <- scale_continuous + ggtitle("Continuous Scale");
+
+scale_discrete <- scale_discrete + ggtitle("Discrete Scale");
+
+multiplot(scale_continuous, scale_discrete, cols=2);
+```
+
+
+
+### Bar Chart with a Data Frame
+
+Pass the name of the data frame to `ggplot()`, then pass any column by name.
+
+Minimal syntax for building a bar chart with a data frame
+```{r eval=FALSE}
+ggplot( data = _____ ) + aes( x = __, y = __ ) + geom_bar( stat = ______ )
+```
+
+```{r}
+h <- 1:6;
+v <- 1:6;
+
+df_econ <- data.frame(sales=h, profit=(.05 * v^2))
+
+plot_econ <- ggplot(data=df_econ) + aes(x=sales, y=profit) + geom_bar(stat="identity");
+
+print(plot_econ);
+```
+
+
+## Complete Bar Chart Code
+```{r}
+h <- 1:10; v <- 1:10;
+t <- c("A", "B", "B", "A", "B", "A", "B", "B", "A", "A");
+
+h <- c(1,1,2,2,3,3,4,4,5,5)
+df <- data.frame(h=h, v=v, t=t);
+
+ggplot(df) + aes(x=h, y=v^2, fill=t) + geom_bar(stat="identity");
+
+ggplot() + aes(x=h, y=v) + geom_bar(stat="identity");
+
+ggplot() + aes(x=h) + geom_bar();
+```
+
+## List of Text Elements (list form)
+From http://docs.ggplot2.org/current/theme.html:    
+Text elements that can be accessed by `theme()`
+
+* text 		
+	+ all text elements 
+	+ (element_text)
+* title 	
+	+ all title elements: plot, axes, legends 
+	+ (element_text; inherits from text)
+
+* axis.title	
+	+ label of axes 
+	+ (element_text; inherits from text)
+* axis.title.x 	
+	+ x axis label 
+	+ (element_text; inherits from axis.title)
+* axis.title.y 	
+	+ y axis label 
+	+ (element_text; inherits from axis.title)
+* axis.text 	
+	+ tick labels along axes 
+	+ (element_text; inherits from text)
+* axis.text.x 	
+	+ x axis tick labels 
+	+ (element_text; inherits from axis.text)
+* axis.text.y 	
+	+ y axis tick labels 
+	+ (element_text; inherits from axis.text)
+
+* legend.text 		
+	+ legend item labels 
+	+ (element_text; inherits from text)
+* legend.text.align 	
+	+ alignment of legend labels 
+	+ (number from 0 (left) to 1 (right))
+* legend.title	 	
+	+ title of legend 
+	+ (element_text; inherits from title)
+* legend.title.align 	
+	+ alignment of legend title 
+	+ (number from 0 (left) to 1 (right))
+* legend.direction 	
+	+ layout of items in legends 
+	+ ("horizontal" or "vertical")
+
+* plot.title 	
+	+ plot title (text appearance) 
+	+ (element_text; inherits from title)
+
+* strip.text 	
+	+ facet labels 
+	+ (element_text; inherits from text)
+* strip.text.x 	
+	+ facet labels along horizontal direction 
+	+ (element_text; inherits from strip.text)
+* strip.text.y 	
+	+ facet labels along vertical direction 
+	+ (element_text; inherits from strip.text) 
+
+## List of Text Attributes
+From http://docs.ggplot2.org/current/element_text.html:    
+Text attributes that modified by `element_text()`
+
+* family
+    	+ font family
+* face
+    	+ font face ("plain", "italic", "bold", "bold.italic")
+* color
+	+ text color
+* colour
+    	+ text colour
+* size
+    	+ text size (in pts)
+* hjust
+    	+ horizontal justification (in [0, 1])
+* vjust
+    	+ vertical justification (in [0, 1])
+* angle
+    	+ angle (in [0, 360])
+* lineheight
+    	+ line height
